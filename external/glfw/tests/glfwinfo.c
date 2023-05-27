@@ -23,9 +23,7 @@
 //
 //========================================================================
 
-#define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
-#define GLAD_VULKAN_IMPLEMENTATION
 #include <glad/vulkan.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -64,24 +62,10 @@
 #define ANGLE_TYPE_VULKAN   "vk"
 #define ANGLE_TYPE_METAL    "mtl"
 
-#define PLATFORM_NAME_ANY   "any"
-#define PLATFORM_NAME_WIN32 "win32"
-#define PLATFORM_NAME_COCOA "cooca"
-#define PLATFORM_NAME_WL    "wayland"
-#define PLATFORM_NAME_X11   "x11"
-#define PLATFORM_NAME_NULL  "null"
-
 static void usage(void)
 {
     printf("Usage: glfwinfo [OPTION]...\n");
     printf("Options:\n");
-    printf("      --platform=PLATFORM   the platform to use ("
-                                        PLATFORM_NAME_ANY " or "
-                                        PLATFORM_NAME_WIN32 " or "
-                                        PLATFORM_NAME_COCOA " or "
-                                        PLATFORM_NAME_X11 " or "
-                                        PLATFORM_NAME_WL " or "
-                                        PLATFORM_NAME_NULL ")\n");
     printf("  -a, --client-api=API      the client API to use ("
                                         API_NAME_OPENGL " or "
                                         API_NAME_OPENGL_ES ")\n");
@@ -132,28 +116,11 @@ static void usage(void)
                                         ANGLE_TYPE_VULKAN " or "
                                         ANGLE_TYPE_METAL ")\n");
     printf("      --graphics-switching  request macOS graphics switching\n");
-    printf("      --disable-xcb-surface disable VK_KHR_xcb_surface extension\n");
 }
 
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
-}
-
-static const char* get_platform_name(int platform)
-{
-    if (platform == GLFW_PLATFORM_WIN32)
-        return "Win32";
-    else if (platform == GLFW_PLATFORM_COCOA)
-        return "Cocoa";
-    else if (platform == GLFW_PLATFORM_WAYLAND)
-        return "Wayland";
-    else if (platform == GLFW_PLATFORM_X11)
-        return "X11";
-    else if (platform == GLFW_PLATFORM_NULL)
-        return "Null";
-
-    return "unknown";
 }
 
 static const char* get_device_type_name(VkPhysicalDeviceType type)
@@ -255,6 +222,21 @@ static void list_context_extensions(int client, int major, int minor)
     }
 }
 
+static void list_vulkan_instance_extensions(void)
+{
+    printf("Vulkan instance extensions:\n");
+
+    uint32_t ep_count;
+    vkEnumerateInstanceExtensionProperties(NULL, &ep_count, NULL);
+    VkExtensionProperties* ep = calloc(ep_count, sizeof(VkExtensionProperties));
+    vkEnumerateInstanceExtensionProperties(NULL, &ep_count, ep);
+
+    for (uint32_t i = 0;  i < ep_count;  i++)
+        printf(" %s (spec version %u)\n", ep[i].extensionName, ep[i].specVersion);
+
+    free(ep);
+}
+
 static void list_vulkan_instance_layers(void)
 {
     printf("Vulkan instance layers:\n");
@@ -273,6 +255,21 @@ static void list_vulkan_instance_layers(void)
     }
 
     free(lp);
+}
+
+static void list_vulkan_device_extensions(VkInstance instance, VkPhysicalDevice device)
+{
+    printf("Vulkan device extensions:\n");
+
+    uint32_t ep_count;
+    vkEnumerateDeviceExtensionProperties(device, NULL, &ep_count, NULL);
+    VkExtensionProperties* ep = calloc(ep_count, sizeof(VkExtensionProperties));
+    vkEnumerateDeviceExtensionProperties(device, NULL, &ep_count, ep);
+
+    for (uint32_t i = 0;  i < ep_count;  i++)
+        printf(" %s (spec version %u)\n", ep[i].extensionName, ep[i].specVersion);
+
+    free(ep);
 }
 
 static void list_vulkan_device_layers(VkInstance instance, VkPhysicalDevice device)
@@ -325,25 +322,9 @@ static void print_version(void)
     printf("GLFW library version string: \"%s\"\n", glfwGetVersionString());
 }
 
-static void print_platform(void)
+static GLADapiproc glad_vulkan_callback(const char* name, void* user)
 {
-    const int platforms[] =
-    {
-        GLFW_PLATFORM_WIN32,
-        GLFW_PLATFORM_COCOA,
-        GLFW_PLATFORM_WAYLAND,
-        GLFW_PLATFORM_X11,
-        GLFW_PLATFORM_NULL
-    };
-
-    printf("GLFW platform: %s\n", get_platform_name(glfwGetPlatform()));
-    printf("GLFW supported platforms:\n");
-
-    for (size_t i = 0;  i < sizeof(platforms) / sizeof(platforms[0]);  i++)
-    {
-        if (glfwPlatformSupported(platforms[i]))
-            printf(" %s\n", get_platform_name(platforms[i]));
-    }
+    return glfwGetInstanceProcAddress((VkInstance) user, name);
 }
 
 int main(int argc, char** argv)
@@ -352,7 +333,6 @@ int main(int argc, char** argv)
     bool list_extensions = false, list_layers = false;
 
     // These duplicate the defaults for each hint
-    int platform = GLFW_ANY_PLATFORM;
     int client_api = GLFW_OPENGL_API;
     int context_major = 1;
     int context_minor = 0;
@@ -380,18 +360,16 @@ int main(int argc, char** argv)
     bool fb_doublebuffer = true;
     int angle_type = GLFW_ANGLE_PLATFORM_TYPE_NONE;
     bool cocoa_graphics_switching = false;
-    bool disable_xcb_surface = false;
 
-    enum { PLATFORM, CLIENT, CONTEXT, BEHAVIOR, DEBUG_CONTEXT, FORWARD, HELP,
+    enum { CLIENT, CONTEXT, BEHAVIOR, DEBUG_CONTEXT, FORWARD, HELP,
            EXTENSIONS, LAYERS,
            MAJOR, MINOR, PROFILE, ROBUSTNESS, VERSION,
            REDBITS, GREENBITS, BLUEBITS, ALPHABITS, DEPTHBITS, STENCILBITS,
            ACCUMREDBITS, ACCUMGREENBITS, ACCUMBLUEBITS, ACCUMALPHABITS,
            AUXBUFFERS, SAMPLES, STEREO, SRGB, SINGLEBUFFER, NOERROR_SRSLY,
-           ANGLE_TYPE, GRAPHICS_SWITCHING, XCB_SURFACE };
+           ANGLE_TYPE, GRAPHICS_SWITCHING };
     const struct option options[] =
     {
-        { "platform",           1, NULL, PLATFORM },
         { "behavior",           1, NULL, BEHAVIOR },
         { "client-api",         1, NULL, CLIENT },
         { "context-api",        1, NULL, CONTEXT },
@@ -423,7 +401,6 @@ int main(int argc, char** argv)
         { "no-error",           0, NULL, NOERROR_SRSLY },
         { "angle-type",         1, NULL, ANGLE_TYPE },
         { "graphics-switching", 0, NULL, GRAPHICS_SWITCHING },
-        { "vk-xcb-surface",     0, NULL, XCB_SURFACE },
         { NULL, 0, NULL, 0 }
     };
 
@@ -431,25 +408,6 @@ int main(int argc, char** argv)
     {
         switch (ch)
         {
-            case PLATFORM:
-                if (strcasecmp(optarg, PLATFORM_NAME_ANY) == 0)
-                    platform = GLFW_ANY_PLATFORM;
-                else if (strcasecmp(optarg, PLATFORM_NAME_WIN32) == 0)
-                    platform = GLFW_PLATFORM_WIN32;
-                else if (strcasecmp(optarg, PLATFORM_NAME_COCOA) == 0)
-                    platform = GLFW_PLATFORM_COCOA;
-                else if (strcasecmp(optarg, PLATFORM_NAME_WL) == 0)
-                    platform = GLFW_PLATFORM_WAYLAND;
-                else if (strcasecmp(optarg, PLATFORM_NAME_X11) == 0)
-                    platform = GLFW_PLATFORM_X11;
-                else if (strcasecmp(optarg, PLATFORM_NAME_NULL) == 0)
-                    platform = GLFW_PLATFORM_NULL;
-                else
-                {
-                    usage();
-                    exit(EXIT_FAILURE);
-                }
-                break;
             case 'a':
             case CLIENT:
                 if (strcasecmp(optarg, API_NAME_OPENGL) == 0)
@@ -649,9 +607,6 @@ int main(int argc, char** argv)
             case GRAPHICS_SWITCHING:
                 cocoa_graphics_switching = true;
                 break;
-            case XCB_SURFACE:
-                disable_xcb_surface = true;
-                break;
             default:
                 usage();
                 exit(EXIT_FAILURE);
@@ -665,18 +620,14 @@ int main(int argc, char** argv)
 
     glfwSetErrorCallback(error_callback);
 
-    glfwInitHint(GLFW_PLATFORM, platform);
-
     glfwInitHint(GLFW_COCOA_MENUBAR, false);
 
     glfwInitHint(GLFW_ANGLE_PLATFORM_TYPE, angle_type);
-    glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, !disable_xcb_surface);
 
     if (!glfwInit())
         exit(EXIT_FAILURE);
 
     print_version();
-    print_platform();
 
     glfwWindowHint(GLFW_VISIBLE, false);
 
@@ -892,23 +843,12 @@ int main(int argc, char** argv)
     if (list_extensions)
         list_context_extensions(client, major, minor);
 
-    glfwDestroyWindow(window);
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    window = glfwCreateWindow(200, 200, "Version", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
     printf("Vulkan loader: %s\n",
            glfwVulkanSupported() ? "available" : "missing");
 
     if (glfwVulkanSupported())
     {
-        gladLoadVulkanUserPtr(NULL, (GLADuserptrloadfunc) glfwGetInstanceProcAddress, NULL);
+        gladLoadVulkanUserPtr(NULL, glad_vulkan_callback, NULL);
 
         uint32_t loader_version = VK_API_VERSION_1_0;
 
@@ -923,51 +863,21 @@ int main(int argc, char** argv)
                VK_VERSION_MAJOR(loader_version),
                VK_VERSION_MINOR(loader_version));
 
-        uint32_t glfw_re_count;
-        const char** glfw_re = glfwGetRequiredInstanceExtensions(&glfw_re_count);
+        uint32_t re_count;
+        const char** re = glfwGetRequiredInstanceExtensions(&re_count);
 
-        uint32_t re_count = glfw_re_count;
-        const char** re = calloc(glfw_re_count, sizeof(char*));
-
-        if (glfw_re)
+        printf("Vulkan required instance extensions:");
+        if (re)
         {
-            printf("Vulkan window surface required instance extensions:\n");
-            for (uint32_t i = 0;  i < glfw_re_count;  i++)
-            {
-                printf(" %s\n", glfw_re[i]);
-                re[i] = glfw_re[i];
-            }
+            for (uint32_t i = 0;  i < re_count;  i++)
+                printf(" %s", re[i]);
+            putchar('\n');
         }
         else
-            printf("Vulkan window surface extensions missing\n");
-
-        uint32_t ep_count;
-        vkEnumerateInstanceExtensionProperties(NULL, &ep_count, NULL);
-        VkExtensionProperties* ep = calloc(ep_count, sizeof(VkExtensionProperties));
-        vkEnumerateInstanceExtensionProperties(NULL, &ep_count, ep);
+            printf(" missing\n");
 
         if (list_extensions)
-        {
-            printf("Vulkan instance extensions:\n");
-
-            for (uint32_t i = 0;  i < ep_count;  i++)
-                printf(" %s (spec version %u)\n", ep[i].extensionName, ep[i].specVersion);
-        }
-
-        bool portability_enumeration = false;
-
-        for (uint32_t i = 0;  i < ep_count;  i++)
-        {
-            if (strcmp(ep[i].extensionName, "VK_KHR_portability_enumeration") != 0)
-                continue;
-
-            re_count++;
-            re = realloc((void*) re, sizeof(char*) * re_count);
-            re[re_count - 1] = "VK_KHR_portability_enumeration";
-            portability_enumeration = true;
-        }
-
-        free(ep);
+            list_vulkan_instance_extensions();
 
         if (list_layers)
             list_vulkan_instance_layers();
@@ -988,9 +898,6 @@ int main(int argc, char** argv)
         ici.enabledExtensionCount = re_count;
         ici.ppEnabledExtensionNames = re;
 
-        if (portability_enumeration)
-            ici.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-
         VkInstance instance = VK_NULL_HANDLE;
 
         if (vkCreateInstance(&ici, NULL, &instance) != VK_SUCCESS)
@@ -999,22 +906,7 @@ int main(int argc, char** argv)
             exit(EXIT_FAILURE);
         }
 
-        free((void*) re);
-
-        gladLoadVulkanUserPtr(NULL, (GLADuserptrloadfunc) glfwGetInstanceProcAddress, instance);
-
-        if (glfw_re_count)
-        {
-            VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-            if (glfwCreateWindowSurface(instance, window, NULL, &surface) == VK_SUCCESS)
-            {
-                printf("Vulkan window surface created successfully\n");
-                vkDestroySurfaceKHR(instance, surface, NULL);
-            }
-            else
-                printf("Failed to create Vulkan window surface\n");
-        }
+        gladLoadVulkanUserPtr(NULL, glad_vulkan_callback, instance);
 
         uint32_t pd_count;
         vkEnumeratePhysicalDevices(instance, &pd_count, NULL);
@@ -1024,66 +916,17 @@ int main(int argc, char** argv)
         for (uint32_t i = 0;  i < pd_count;  i++)
         {
             VkPhysicalDeviceProperties pdp;
+
             vkGetPhysicalDeviceProperties(pd[i], &pdp);
 
-            uint32_t qfp_count;
-            vkGetPhysicalDeviceQueueFamilyProperties(pd[i], &qfp_count, NULL);
-
-            uint32_t ep_count;
-            vkEnumerateDeviceExtensionProperties(pd[i], NULL, &ep_count, NULL);
-            VkExtensionProperties* ep = calloc(ep_count, sizeof(VkExtensionProperties));
-            vkEnumerateDeviceExtensionProperties(pd[i], NULL, &ep_count, ep);
-
-            if (portability_enumeration)
-            {
-                bool conformant = true;
-
-                for (uint32_t j = 0; j < ep_count; j++)
-                {
-                    if (strcmp(ep[j].extensionName, "VK_KHR_portability_subset") == 0)
-                    {
-                        conformant = false;
-                        break;
-                    }
-                }
-
-                printf("Vulkan %s %s device: \"%s\" (API version %i.%i)\n",
-                       conformant ? "conformant" : "non-conformant",
-                       get_device_type_name(pdp.deviceType),
-                       pdp.deviceName,
-                       VK_VERSION_MAJOR(pdp.apiVersion),
-                       VK_VERSION_MINOR(pdp.apiVersion));
-            }
-            else
-            {
-                printf("Vulkan %s device: \"%s\" (API version %i.%i)\n",
-                       get_device_type_name(pdp.deviceType),
-                       pdp.deviceName,
-                       VK_VERSION_MAJOR(pdp.apiVersion),
-                       VK_VERSION_MINOR(pdp.apiVersion));
-            }
-
-            if (glfw_re_count)
-            {
-                printf("Vulkan device queue family presentation support:\n");
-                for (uint32_t j = 0;  j < qfp_count;  j++)
-                {
-                    printf(" %u: ", j);
-                    if (glfwGetPhysicalDevicePresentationSupport(instance, pd[i], j))
-                        printf("supported\n");
-                    else
-                        printf("no\n");
-                }
-            }
+            printf("Vulkan %s device: \"%s\" (API version %i.%i)\n",
+                   get_device_type_name(pdp.deviceType),
+                   pdp.deviceName,
+                   VK_VERSION_MAJOR(pdp.apiVersion),
+                   VK_VERSION_MINOR(pdp.apiVersion));
 
             if (list_extensions)
-            {
-                printf("Vulkan device extensions:\n");
-                for (uint32_t j = 0;  j < ep_count;  j++)
-                    printf(" %s (spec version %u)\n", ep[j].extensionName, ep[j].specVersion);
-            }
-
-            free(ep);
+                list_vulkan_device_extensions(instance, pd[i]);
 
             if (list_layers)
                 list_vulkan_device_layers(instance, pd[i]);
@@ -1092,8 +935,6 @@ int main(int argc, char** argv)
         free(pd);
         vkDestroyInstance(instance, NULL);
     }
-
-    glfwDestroyWindow(window);
 
     glfwTerminate();
     exit(EXIT_SUCCESS);

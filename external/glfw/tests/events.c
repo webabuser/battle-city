@@ -31,7 +31,6 @@
 //
 //========================================================================
 
-#define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -642,7 +641,7 @@ int main(int argc, char** argv)
 
         glfwMakeContextCurrent(slots[i].window);
         gladLoadGL(glfwGetProcAddress);
-        glfwSwapBuffers(slots[i].window);
+        glfwSwapInterval(1);
     }
 
     printf("Main loop starting\n");

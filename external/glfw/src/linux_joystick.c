@@ -29,8 +29,6 @@
 
 #include "internal.h"
 
-#if defined(GLFW_BUILD_LINUX_JOYSTICK)
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/inotify.h>
@@ -130,7 +128,7 @@ static GLFWbool openJoystickDevice(const char* path)
 {
     for (int jid = 0;  jid <= GLFW_JOYSTICK_LAST;  jid++)
     {
-        if (!_glfw.joysticks[jid].connected)
+        if (!_glfw.joysticks[jid].present)
             continue;
         if (strcmp(_glfw.joysticks[jid].linjs.path, path) == 0)
             return GLFW_FALSE;
@@ -159,7 +157,7 @@ static GLFWbool openJoystickDevice(const char* path)
     }
 
     // Ensure this device supports the events expected of a joystick
-    if (!isBitSet(EV_ABS, evBits))
+    if (!isBitSet(EV_KEY, evBits) || !isBitSet(EV_ABS, evBits))
     {
         close(linjs.fd);
         return GLFW_FALSE;
@@ -247,9 +245,9 @@ static GLFWbool openJoystickDevice(const char* path)
 //
 static void closeJoystick(_GLFWjoystick* js)
 {
-    _glfwInputJoystick(js, GLFW_DISCONNECTED);
     close(js->linjs.fd);
     _glfwFreeJoystick(js);
+    _glfwInputJoystick(js, GLFW_DISCONNECTED);
 }
 
 // Lexically compare joysticks by name; used by qsort
@@ -309,7 +307,7 @@ void _glfwDetectJoystickConnectionLinux(void)
 //////                       GLFW platform API                      //////
 //////////////////////////////////////////////////////////////////////////
 
-GLFWbool _glfwInitJoysticksLinux(void)
+GLFWbool _glfwPlatformInitJoysticks(void)
 {
     const char* dirname = "/dev/input";
 
@@ -363,12 +361,14 @@ GLFWbool _glfwInitJoysticksLinux(void)
     return GLFW_TRUE;
 }
 
-void _glfwTerminateJoysticksLinux(void)
+void _glfwPlatformTerminateJoysticks(void)
 {
-    for (int jid = 0;  jid <= GLFW_JOYSTICK_LAST;  jid++)
+    int jid;
+
+    for (jid = 0;  jid <= GLFW_JOYSTICK_LAST;  jid++)
     {
         _GLFWjoystick* js = _glfw.joysticks + jid;
-        if (js->connected)
+        if (js->present)
             closeJoystick(js);
     }
 
@@ -382,7 +382,7 @@ void _glfwTerminateJoysticksLinux(void)
     }
 }
 
-GLFWbool _glfwPollJoystickLinux(_GLFWjoystick* js, int mode)
+int _glfwPlatformPollJoystick(_GLFWjoystick* js, int mode)
 {
     // Read all queued events (non-blocking)
     for (;;)
@@ -419,17 +419,10 @@ GLFWbool _glfwPollJoystickLinux(_GLFWjoystick* js, int mode)
             handleAbsEvent(js, e.code, e.value);
     }
 
-    return js->connected;
+    return js->present;
 }
 
-const char* _glfwGetMappingNameLinux(void)
-{
-    return "Linux";
-}
-
-void _glfwUpdateGamepadGUIDLinux(char* guid)
+void _glfwPlatformUpdateGamepadGUID(char* guid)
 {
 }
-
-#endif // GLFW_BUILD_LINUX_JOYSTICK
 

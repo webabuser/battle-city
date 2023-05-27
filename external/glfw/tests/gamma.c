@@ -28,7 +28,6 @@
 //
 //========================================================================
 
-#define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -113,12 +112,6 @@ int main(int argc, char** argv)
 
     {
         const GLFWgammaramp* ramp = glfwGetGammaRamp(monitor);
-        if (!ramp)
-        {
-            glfwTerminate();
-            exit(EXIT_FAILURE);
-        }
-
         const size_t array_size = ramp->size * sizeof(short);
         orig_ramp.size = ramp->size;
         orig_ramp.red = malloc(array_size);

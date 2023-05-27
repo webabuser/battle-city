@@ -77,7 +77,6 @@ examples/splitview
 examples/sharing
 examples/triangle-opengl
 examples/wave
-examples/windows
 tests/*.app
 tests/*.exe
 tests/clipboard
@@ -88,7 +87,6 @@ tests/gamma
 tests/glfwinfo
 tests/icon
 tests/iconify
-tests/inputlag
 tests/joysticks
 tests/monitors
 tests/msaa
