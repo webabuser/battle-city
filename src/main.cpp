@@ -1,4 +1,4 @@
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
 #include <iostream>
 
 int main(void)
@@ -38,7 +38,8 @@ int main(void)
 		glfwTerminate();
 	}
 	*/
+	std::cout << "Hello World" << std::endl;
 	
-	
+	std::cin.get();
     return 0;
 }
