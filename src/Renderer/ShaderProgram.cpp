@@ -1,7 +1,6 @@
 #include "ShaderProgram.h"
 #include <iostream>
 
-
 namespace Renderer {
 
 

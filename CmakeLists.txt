@@ -14,6 +14,7 @@ add_executable(
 	src/Renderer/ShaderProgram.h
 	src/Resources/ResourceManager.h
 	src/Resources/ResourceManager.cpp
+	src/Resources/stb_image.h
 	)
 
 
