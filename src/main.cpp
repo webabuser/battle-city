@@ -4,6 +4,52 @@
 
 #include "Renderer/ShaderProgram.h"
 #include "Resources/ResourceManager.h"
+#include "Renderer/Texture2D.h"
+
+
+#define ASSERT(x) if(!(x)) __debugbreak();
+#define GLCall(x) GLClearError();\
+   x;\
+   ASSERT(GLLogCall(#x, __FILE__, __LINE__));
+
+
+static void GLClearError()
+{
+    while (glGetError() != GL_NO_ERROR);
+}
+
+static bool GLLogCall(const char* function, const char* file, int line) {
+    while (GLenum error = glGetError())
+    {
+        std::cout << "[OpenGL_Error] (" << error << "): " << function <<
+        " " << file << ":" << line << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+
+
+
+GLfloat point[] = {
+    0.0f,  0.5f, 0.0f,
+    0.5f, -0.5f, 0.0f,
+   -0.5f, -0.5f, 0.0f
+};
+
+GLfloat colors[] = {
+    1.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 1.0f
+};
+
+
+GLfloat texCoord[] = {
+    0.5f, 1.0f,
+    1.0f, 0.0f,
+    0.0f, 0.0f
+}; 
 
 
 int g_windowSizeX = 640;
@@ -27,26 +73,10 @@ void glfwKeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int
 }
 
 
-GLfloat point[] = {
-    0.1f,  0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-   -0.5f, -0.5f, 0.0f
-};
-
-GLfloat colors[] = {
-    1.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 1.0f
-};
-
-  
+ 
 
 int main(int argc, char** argv)
 {
-
-	{
-
-        
 
 		// Initialize the library
         if (!glfwInit())
@@ -55,9 +85,9 @@ int main(int argc, char** argv)
         	return -1;
         }
 
-        //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
 		// Create a windowed mode window and its OpenGL context
@@ -85,7 +115,7 @@ int main(int argc, char** argv)
         std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 		std::cout << "OpenGL" << GLVersion.major << "." << GLVersion.minor << std::endl;
 		
-		glClearColor(0, 1, 0, 1); //Устанавливаем цвет буфера
+		GLCall(glClearColor(0, 1, 0, 1)); //Устанавливаем цвет буфера
 		
         {
             ResourceManager resourceManager(argv[0]);
@@ -93,33 +123,46 @@ int main(int argc, char** argv)
 
             if (!pDefaultShaderProgram)
             {
-                std::cerr << "Can't create shader program: " << "DefaltShader" << std::endl;
+                std::cerr << "Can't create shader program: " << "DefaultShader" << std::endl;
                 return -1;
             }
 
-            resourceManager.loadTexture("DefaltTexture", "res/textures/map_16x16.png");
+            auto tex = resourceManager.loadTexture("DefaultTexture", "res/textures/map_16x16.png");
 
             GLuint points_vbo = 0;
-            glGenBuffers(1, &points_vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(point), point, GL_STATIC_DRAW);
+            GLCall(glGenBuffers(1, &points_vbo));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, points_vbo));
+            GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(point), point, GL_STATIC_DRAW));
 
             GLuint colors_vbo = 0;
-            glGenBuffers(1, &colors_vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+            GLCall(glGenBuffers(1, &colors_vbo));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, colors_vbo));
+            GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW));
+
+            GLuint texCoord_vbo = 0;
+            GLCall(glGenBuffers(1, &texCoord_vbo));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, texCoord_vbo));
+            GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(texCoord), texCoord, GL_STATIC_DRAW));
 
             GLuint vao = 0;
             glGenVertexArrays(1, &vao);
             glBindVertexArray(vao);
 
-            glEnableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+            GLCall(glEnableVertexAttribArray(0));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, points_vbo));
+            GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
 
-            glEnableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+            GLCall(glEnableVertexAttribArray(1));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, colors_vbo));
+            GLCall(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+
+            //Буфер для координат текстур
+            GLCall(glEnableVertexAttribArray(2));
+            GLCall(glBindBuffer(GL_ARRAY_BUFFER, texCoord_vbo));
+            GLCall(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr)); //2 координаты
+
+            GLCall(pDefaultShaderProgram->use());
+            GLCall(pDefaultShaderProgram->setInt("tex", 0)); //Устанавливаем текстуру в нулевой слот
 
 
 		    // Loop until the user closes the window
@@ -131,6 +174,7 @@ int main(int argc, char** argv)
 
                 pDefaultShaderProgram->use();
                 glBindVertexArray(vao);
+                tex->bind();
                 glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
@@ -142,7 +186,7 @@ int main(int argc, char** argv)
 		    }
         }
 		glfwTerminate();
-	}
+	
 	
 	std::cout << "Hello World" <<"-"<<sizeof(colors) << std::endl;
 	

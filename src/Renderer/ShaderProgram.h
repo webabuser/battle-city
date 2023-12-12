@@ -13,6 +13,8 @@ public:
 
 	bool isCompiled() const { return m_isCompiled; }
 	void use() const;
+
+    void setInt(const std::string& name, const GLint value);
 		
 	ShaderProgram() = delete; //Запрещаем конструктор без параметров
 	ShaderProgram(ShaderProgram&) = delete;  // запретим конструктор копирования вроде, чтобы нельзя было создать шейдер из другой программы шейдера
