@@ -1,9 +1,5 @@
-external
-build/.vs
-build/Debug
-build/x64
-build/cMakeFiles
-CmakeCache.txt
+build
+
 
 
 
