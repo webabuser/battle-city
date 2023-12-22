@@ -2,9 +2,10 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#include "Renderer/ShaderProgram.h"
 
 GLfloat points[] = {
-    0.0f, 0.5f, 0.0f,
+    0.2f, 0.5f, 0.0f,
     0.5f, -0.5f, 0.0f,
    -0.5f, -0.5f, 0.0f
 };
@@ -96,7 +97,7 @@ int main(void)
 		
 		glClearColor(0.5, 1, 0, 1); //Устанавливаем цвет буфера
 		
-        /********************************* Установка шадеров*****************/
+        /********************************* Установка шадеров*****************
             // Устанавливаем шейдеры
             GLuint vs = glCreateShader(GL_VERTEX_SHADER);
             glShaderSource(vs, 1, &vertex_shader, nullptr);
@@ -117,6 +118,23 @@ int main(void)
 
             glDeleteShader(vs);
             glDeleteShader(fs);
+
+            */
+            //Заменили код выше объектным
+            std::string vertexShader(vertex_shader);
+            std::string fragmentShader(fragment_shader);
+
+            Renderer::ShaderProgram shaderProgram(vertexShader, fragmentShader);
+
+            if (!shaderProgram.isCompiled())
+            {
+                std::cerr << "Can't create shader program!" << std::endl;
+                return -1;
+            }
+
+
+
+
 
             // Генерируем буфер для информации от шейдеров
             GLuint points_vbo = 0;
@@ -152,7 +170,11 @@ int main(void)
 			// Render here
 			glClear(GL_COLOR_BUFFER_BIT);
 
-            glUseProgram(shader_program);
+            //glUseProgram(shader_program);
+            // вместо функции выше используем объетный метод
+            shaderProgram.use();
+
+
             glBindVertexArray(vao);
             glDrawArrays(GL_TRIANGLES, 0, 3);
 
