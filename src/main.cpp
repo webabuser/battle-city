@@ -120,6 +120,7 @@ int main(int argc, char** argv)
                     return -1;
                 }
 
+                resourceManager.loadTexture("DefaultTexture", "res/textures/map_16x16.png");
 
                 // Генерируем буфер для информации от шейдеров
                 GLuint points_vbo = 0;
