@@ -11,6 +11,8 @@ add_executable(${PROJECT_NAME}
     src/Renderer/ShaderProgram.h
 	src/Resources/ResourceManager.cpp
 	src/Resources/ResourceManager.h
+	src/Renderer/Texture2D.h
+	src/Renderer/Texture2D.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
