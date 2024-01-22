@@ -12,9 +12,9 @@
 #include "glm/vec2.hpp"
 
 GLfloat points[] = {
-    0.0f, 0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-   -0.5f, -0.5f, 0.0f
+    0.0f,  50.f, 0.0f,
+    50.f,  -50.f, 0.0f,
+   -50.f,  -50.f, 0.0f
 };
 
 GLfloat colors[] = {
@@ -193,6 +193,6 @@ int main(int argc, char** argv)
 	
 	std::cout << "Hello World" << std::endl;
 	
-	std::cin.get();
+
     return 0;
 }
