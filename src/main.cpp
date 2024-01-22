@@ -2,6 +2,10 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#include <glm/vec2.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Renderer/ShaderProgram.h"
 #include "Resources/ResourceManager.h"
 #include "Renderer/Texture2D.h"
@@ -47,7 +51,7 @@ void glfwKeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int
 
 int main(int argc, char** argv)
 {
-	{
+
 
 
 		// Initialize the library
@@ -88,33 +92,6 @@ int main(int argc, char** argv)
 		std::cout << "OpenGL" << GLVersion.major << "." << GLVersion.minor << std::endl;
 		
 		glClearColor(0.5, 1, 0, 1); //Устанавливаем цвет буфера
-		
-        /********************************* Установка шадеров*****************
-            // Устанавливаем шейдеры
-            GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vs, 1, &vertex_shader, nullptr);
-            glCompileShader(vs);
-
-             GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fs, 1, &fragment_shader, nullptr);
-            glCompileShader(fs);
-
-            // Теперь надо слинковать шейдеры
-
-            GLuint shader_program = glCreateProgram();
-            glAttachShader(shader_program, vs);
-            glAttachShader(shader_program, fs);
-            glLinkProgram(shader_program);
-
-            // После линковки удаляем шейдеры
-
-            glDeleteShader(vs);
-            glDeleteShader(fs);
-
-            */
-            //Заменили код выше объектным
-
-
 
             {
 
@@ -170,6 +147,18 @@ int main(int argc, char** argv)
                 pDefaultShaderProgram->use();
                 pDefaultShaderProgram->setInt("tex", 0);
 
+
+                glm::mat4 modelMatrix_1 = glm::mat4(1.f);
+                modelMatrix_1 = glm::translate(modelMatrix_1, glm::vec3(100.f, 50.f, 0.f));
+
+                glm::mat4 modelMatrix_2 = glm::mat4(1.f);
+                modelMatrix_2 = glm::translate(modelMatrix_2, glm::vec3(590.f, 50.f, 0.f));
+
+                glm::mat4 projectionMatrix = glm::ortho(0.f, static_cast<float>(g_windowSize.x), 0.f, static_cast<float>(g_windowSize.y), -100.f, 100.f);
+
+                pDefaultShaderProgram->setMatrix4("projectionMat", projectionMatrix);
+
+
 		    // Loop until the user closes the window
 		    while (!glfwWindowShouldClose(pWindow))
 		    {
@@ -185,7 +174,12 @@ int main(int argc, char** argv)
 
                 tex->bind();
 
+                pDefaultShaderProgram->setMatrix4("modelMat", modelMatrix_1);
                 glDrawArrays(GL_TRIANGLES, 0, 3);
+
+                pDefaultShaderProgram->setMatrix4("modelMat", modelMatrix_2);
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+
 
 			    // Swap front and back buffers
 			    glfwSwapBuffers(pWindow);
@@ -195,7 +189,7 @@ int main(int argc, char** argv)
 		    }
         }
 		glfwTerminate();
-	}
+
 	
 	std::cout << "Hello World" << std::endl;
 	
